@@ -13,7 +13,30 @@
   html { scroll-behavior: smooth; }
   body { margin: 0; background: #0b0d0e; }
   a { text-decoration: none; color: inherit; }
+  button, input { font: inherit; }
   @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+  .terminal-launch { border:1px solid #a3e635; background:transparent; color:#a3e635; padding:9px 14px; border-radius:7px; cursor:pointer; font-size:12px; }
+  .terminal-launch:hover, .terminal-launch:focus-visible { background:#a3e635; color:#0b0d0e; outline:none; }
+  .terminal-mode { position:fixed; inset:0; z-index:100; display:none; place-items:center; padding:28px; background:radial-gradient(circle at 50% 0%,#182019 0,#0b0d0e 55%); font-family:'JetBrains Mono',monospace; color:#d7ded8; }
+  .terminal-mode.is-open { display:grid; }
+  .terminal-window { width:min(980px,100%); height:min(720px,calc(100vh - 56px)); display:flex; flex-direction:column; overflow:hidden; border:1px solid #303932; border-radius:12px; background:rgba(8,11,9,.96); box-shadow:0 28px 90px rgba(0,0,0,.55); }
+  .terminal-titlebar { display:flex; align-items:center; gap:8px; min-height:46px; padding:0 15px; border-bottom:1px solid #252c27; background:#121714; }
+  .terminal-dot { width:11px; height:11px; border-radius:50%; display:block; }
+  .terminal-title { flex:1; text-align:center; color:#79827b; font-size:12px; }
+  .terminal-exit { border:0; background:transparent; color:#a3e635; cursor:pointer; padding:6px 8px; font-size:12px; }
+  .terminal-exit:hover, .terminal-exit:focus-visible { color:#d7ff75; outline:1px solid #a3e635; border-radius:4px; }
+  .terminal-output { flex:1; overflow:auto; padding:22px; font-size:13px; line-height:1.65; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .terminal-output a { color:#a3e635; text-decoration:underline; }
+  .terminal-line { display:flex; align-items:flex-start; }
+  .terminal-prompt { color:#a3e635; flex:none; }
+  .terminal-command { color:#eef3ee; }
+  .terminal-muted { color:#768078; }
+  .terminal-error { color:#ff7b72; }
+  .terminal-input-row { display:flex; align-items:center; gap:9px; padding:13px 22px 18px; border-top:1px solid #1d241f; }
+  .terminal-input { flex:1; min-width:0; border:0; outline:0; background:transparent; color:#eef3ee; caret-color:#a3e635; font-size:13px; }
+  .terminal-run { border:1px solid #344038; border-radius:5px; background:#182019; color:#a3e635; padding:6px 10px; cursor:pointer; font-size:11px; }
+  .terminal-run:hover, .terminal-run:focus-visible { border-color:#a3e635; outline:none; }
+  body.terminal-open { overflow:hidden; }
   @media (max-width:768px){
     .hero{ grid-template-columns:1fr !important; padding:28px 20px 40px !important; gap:28px !important; }
     .hero h1{ font-size:54px !important; }
@@ -31,6 +54,10 @@
     .edugrid{ grid-template-columns:1fr !important; gap:24px !important; }
     .contact{ flex-direction:column; align-items:flex-start !important; }
     .navlinks{ display:none !important; }
+    .terminal-mode{ padding:0; }
+    .terminal-window{ width:100%; height:100vh; border:0; border-radius:0; }
+    .terminal-output{ padding:18px; }
+    .terminal-input-row{ padding:12px 18px 18px; }
     .footbar{ flex-direction:column; gap:8px; align-items:flex-start !important; text-align:left; }
   }
 </style>
@@ -54,6 +81,7 @@
         <a href="#education" style="color:#9aa39d;">./education</a>
         <a href="#contact" style="color:#9aa39d;">./contact</a>
       </div>
+      <button class="terminal-launch" type="button" data-open-terminal aria-haspopup="dialog">terminal_mode()</button>
     </div>
 
     <!-- hero -->
@@ -65,6 +93,7 @@
         <div style="display:flex; gap:14px; flex-wrap:wrap; font-family:'JetBrains Mono',monospace; font-size:14px;">
           <a href="#contact" style="background:#a3e635; color:#0b0d0e; font-weight:600; padding:14px 24px; border-radius:8px;">get_in_touch()</a>
           <a href="https://github.com/Yoken0" style="border:1px solid #2a312c; color:#e6e8e6; padding:14px 24px; border-radius:8px;">view_source →</a>
+          <button class="terminal-launch" type="button" data-open-terminal>try_terminal()</button>
         </div>
       </div>
       <div class="portrait" style="border:1px solid #1b201d; border-radius:10px; overflow:hidden; background:linear-gradient(150deg,#14181a,#0b0d0e); position:relative;">
@@ -231,6 +260,24 @@
   </div>
 </div>
 
+<section id="terminalMode" class="terminal-mode" role="dialog" aria-modal="true" aria-labelledby="terminalTitle" aria-hidden="true">
+  <div class="terminal-window">
+    <div class="terminal-titlebar">
+      <span class="terminal-dot" style="background:#ff5f57;"></span>
+      <span class="terminal-dot" style="background:#febc2e;"></span>
+      <span class="terminal-dot" style="background:#28c840;"></span>
+      <span id="terminalTitle" class="terminal-title">kenzo@portfolio — ~/portfolio</span>
+      <button id="terminalExit" class="terminal-exit" type="button" aria-label="Exit terminal mode">exit visual ↗</button>
+    </div>
+    <div id="terminalOutput" class="terminal-output" aria-live="polite"></div>
+    <form id="terminalForm" class="terminal-input-row" autocomplete="off">
+      <label id="terminalPrompt" class="terminal-prompt" for="terminalInput">kenzo@portfolio:~$</label>
+      <input id="terminalInput" class="terminal-input" type="text" aria-label="Terminal command" spellcheck="false" autocapitalize="off" autocomplete="off">
+      <button class="terminal-run" type="submit">run ↵</button>
+    </form>
+  </div>
+</section>
+
 <script>
 (function () {
   var bar = document.getElementById('topbar');
@@ -250,6 +297,121 @@
   window.addEventListener('scroll', onScroll, { passive: true });
   if (zone) zone.addEventListener('mouseenter', function () { if (isDesktop()) show(); });
   bar.addEventListener('mouseenter', show);
+})();
+
+(function () {
+  var modal = document.getElementById('terminalMode');
+  var output = document.getElementById('terminalOutput');
+  var form = document.getElementById('terminalForm');
+  var input = document.getElementById('terminalInput');
+  var prompt = document.getElementById('terminalPrompt');
+  var exit = document.getElementById('terminalExit');
+  if (!modal || !output || !form || !input) return;
+
+  var fs = {
+    type:'dir', children:{
+      about:{type:'dir',children:{'bio.txt':{type:'file',content:'Full-stack developer and mathematics enthusiast.\nC++ at the core, AI on the frontier.'},'skills.txt':{type:'file',content:'Languages: C++, Python, JavaScript, TypeScript, Java, C, Coq\nTools: React, Node.js, Flask, MongoDB, PyTorch, Vertex AI, Git'}}},
+      experience:{type:'dir',children:{'merck.txt':{type:'file',content:'Data Analyst Intern — MilliporeSigma, B&I team (Jun–Aug 2026)\nBuilt AI agents, dashboards, internal websites, and data-visualization tools.'}}},
+      projects:{type:'dir',children:{'pike.txt':{type:'file',content:'RAG assistant processing 1,000+ documents/day with Vertex AI.'},'nn-library.txt':{type:'file',content:'C++ neural-network library built from scratch using only the STL.'},'algorithm-visualizer.txt':{type:'file',content:'Interactive sorting and graph algorithm visualizer.'},'py-git.txt':{type:'file',content:'Version-control software with branches, diffs, and a CLI.'}}},
+      education:{type:'dir',children:{'umass-boston.txt':{type:'file',content:'B.S. Computer Science · Minor in Mathematics\nUMass Boston · 2023–Present'}}},
+      contact:{type:'dir',children:{'email.txt':{type:'file',content:'kenzomatsuo@gmail.com'},'github.txt':{type:'file',content:'https://github.com/Yoken0'},'linkedin.txt':{type:'file',content:'https://www.linkedin.com/in/kenzo-matsuo/'}}},
+      'README.txt':{type:'file',content:'Welcome to Kenzo Matsuo’s portfolio.\nRun help to see available commands, or try: cd projects && ls'}
+    }
+  };
+  var cwd = [];
+  var history = [];
+  var historyIndex = 0;
+  var lastFocus = null;
+
+  function nodeAt(parts) {
+    var node = fs;
+    for (var i=0; i<parts.length; i++) {
+      if (!node || node.type !== 'dir') return null;
+      node = node.children[parts[i]];
+    }
+    return node || null;
+  }
+  function resolve(path) {
+    var parts = path && path[0] === '/' ? [] : cwd.slice();
+    (path || '.').split('/').forEach(function (part) {
+      if (!part || part === '.') return;
+      if (part === '..') parts.pop(); else parts.push(part);
+    });
+    return parts;
+  }
+  function parentAndName(path) {
+    var parts = resolve(path);
+    return { parent:nodeAt(parts.slice(0,-1)), name:parts[parts.length-1], parts:parts };
+  }
+  function pathText() { return cwd.length ? '~/portfolio/' + cwd.join('/') : '~/portfolio'; }
+  function updatePrompt() { prompt.textContent = 'kenzo@portfolio:' + (cwd.length ? '~/' + cwd.join('/') : '~') + '$'; }
+  function print(text, className) {
+    var line = document.createElement('div');
+    if (className) line.className = className;
+    line.textContent = text;
+    output.appendChild(line);
+    output.scrollTop = output.scrollHeight;
+  }
+  function printCommand(command) {
+    var line = document.createElement('div');
+    line.className = 'terminal-line';
+    var p = document.createElement('span'); p.className='terminal-prompt'; p.textContent=prompt.textContent + ' ';
+    var c = document.createElement('span'); c.className='terminal-command'; c.textContent=command;
+    line.appendChild(p); line.appendChild(c); output.appendChild(line);
+  }
+  function tokenize(value) {
+    var matches = value.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || [];
+    return matches.map(function (s) { return s.replace(/^(?:"(.*)"|'(.*)')$/, function (_,a,b) { return a === undefined ? b : a; }); });
+  }
+  function run(raw) {
+    var args = tokenize(raw.trim());
+    if (!args.length) return;
+    var cmd = args.shift();
+    if (cmd === 'help') print('Commands:\n  ls [path]       list files\n  cd [path]       change directory\n  pwd             print current path\n  cat <file>      read a file\n  touch <file>    create an empty file\n  mkdir <dir>     create a directory\n  mv <src> <dst>  move or rename\n  rm <path>       remove a file or empty directory\n  echo <text>     print text\n  clear           clear the terminal\n  whoami          quick intro\n  open <name>     open github, linkedin, or email\n  exit            return to the visual portfolio');
+    else if (cmd === 'pwd') print('/portfolio' + (cwd.length ? '/' + cwd.join('/') : ''));
+    else if (cmd === 'whoami') print('Kenzo Matsuo — full-stack developer & math enthusiast.');
+    else if (cmd === 'echo') print(args.join(' '));
+    else if (cmd === 'clear') output.textContent='';
+    else if (cmd === 'exit') closeTerminal();
+    else if (cmd === 'ls') {
+      var listNode = nodeAt(resolve(args[0] || '.'));
+      if (!listNode) print('ls: path not found', 'terminal-error');
+      else if (listNode.type === 'file') print(args[0]);
+      else print(Object.keys(listNode.children).sort().map(function(k){return listNode.children[k].type==='dir' ? k+'/' : k;}).join('  '));
+    } else if (cmd === 'cd') {
+      var dest = nodeAt(resolve(args[0] || '/'));
+      if (!dest) print('cd: no such directory: ' + (args[0] || ''), 'terminal-error');
+      else if (dest.type !== 'dir') print('cd: not a directory: ' + args[0], 'terminal-error');
+      else { cwd = resolve(args[0] || '/'); updatePrompt(); }
+    } else if (cmd === 'cat') {
+      if (!args[0]) print('cat: missing file operand', 'terminal-error');
+      else { var catNode=nodeAt(resolve(args[0])); if(!catNode) print('cat: file not found: '+args[0],'terminal-error'); else if(catNode.type==='dir') print('cat: '+args[0]+': is a directory','terminal-error'); else print(catNode.content); }
+    } else if (cmd === 'touch' || cmd === 'mkdir') {
+      if (!args[0]) print(cmd + ': missing operand', 'terminal-error');
+      else { var target=parentAndName(args[0]); if(!target.name || !target.parent || target.parent.type!=='dir') print(cmd+': invalid path','terminal-error'); else if(target.parent.children[target.name]) print(cmd+': already exists: '+args[0],'terminal-error'); else target.parent.children[target.name]=cmd==='mkdir'?{type:'dir',children:{}}:{type:'file',content:''}; }
+    } else if (cmd === 'rm') {
+      if (!args[0]) print('rm: missing operand','terminal-error');
+      else { var rem=parentAndName(args[0]), remNode=rem.parent&&rem.parent.children[rem.name]; if(!remNode) print('rm: path not found: '+args[0],'terminal-error'); else if(remNode.type==='dir'&&Object.keys(remNode.children).length) print('rm: directory not empty: '+args[0],'terminal-error'); else delete rem.parent.children[rem.name]; }
+    } else if (cmd === 'mv') {
+      if (args.length<2) print('mv: usage: mv <source> <destination>','terminal-error');
+      else { var src=parentAndName(args[0]), item=src.parent&&src.parent.children[src.name], dst=parentAndName(args[1]); if(!item) print('mv: source not found','terminal-error'); else if(!dst.parent||!dst.name) print('mv: invalid destination','terminal-error'); else if(dst.parent.children[dst.name]) print('mv: destination already exists','terminal-error'); else { dst.parent.children[dst.name]=item; delete src.parent.children[src.name]; } }
+    } else if (cmd === 'open') {
+      var links={github:'https://github.com/Yoken0',linkedin:'https://www.linkedin.com/in/kenzo-matsuo/',email:'mailto:kenzomatsuo@gmail.com'};
+      if(!links[args[0]]) print('open: choose github, linkedin, or email','terminal-error'); else window.open(links[args[0]], args[0]==='email'?'_self':'_blank', 'noopener');
+    } else print(cmd + ': command not found. Run help.', 'terminal-error');
+  }
+  function openTerminal() {
+    lastFocus=document.activeElement; modal.classList.add('is-open'); modal.setAttribute('aria-hidden','false'); document.body.classList.add('terminal-open');
+    if (!output.children.length) { print('KenzoOS portfolio shell v1.0', 'terminal-muted'); print('Type help for commands. Try: cat README.txt\n'); }
+    setTimeout(function(){input.focus();},0);
+  }
+  function closeTerminal() { modal.classList.remove('is-open'); modal.setAttribute('aria-hidden','true'); document.body.classList.remove('terminal-open'); if(lastFocus) lastFocus.focus(); }
+  document.querySelectorAll('[data-open-terminal]').forEach(function(button){button.addEventListener('click',openTerminal);});
+  exit.addEventListener('click',closeTerminal);
+  modal.addEventListener('click',function(e){if(e.target===modal) closeTerminal();});
+  form.addEventListener('submit',function(e){e.preventDefault();var value=input.value;printCommand(value);if(value.trim()){history.push(value);historyIndex=history.length;run(value);}input.value='';output.scrollTop=output.scrollHeight;});
+  input.addEventListener('keydown',function(e){if(e.key==='ArrowUp'&&history.length){e.preventDefault();historyIndex=Math.max(0,historyIndex-1);input.value=history[historyIndex]||'';}else if(e.key==='ArrowDown'){e.preventDefault();historyIndex=Math.min(history.length,historyIndex+1);input.value=history[historyIndex]||'';}else if(e.key==='Escape')closeTerminal();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&modal.classList.contains('is-open'))closeTerminal();});
 })();
 </script>
 </body>
